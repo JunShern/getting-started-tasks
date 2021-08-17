@@ -6,8 +6,8 @@ import os
 import time
 import torch
 from pathlib import Path
+from PIL import Image
 from torch import nn
-from torch._C import LongStorageBase
 from tqdm import tqdm
 
 
@@ -325,9 +325,7 @@ def enjoy():
                 # (Note: Normally you would use `environment.render()`, but because of MineRL
                 # we have a different setup)
                 if step_count % RENDER_EVERY == 0:
-                    render(obs, env, headless=HEADLESS, write_frame=True)
-                else:
-                    render(obs, env, headless=HEADLESS)
+                    render(obs, headless=HEADLESS, write_frame=True)
                 # Wait a moment to give slow brains some time to process the information
                 time.sleep(FRAME_DURATION)
                 pbar.update(1)
@@ -340,13 +338,17 @@ def enjoy():
 
         # Save video
         height, width, layers = video_frames[0].shape
-        vid_path = MODEL_PATH.parent / Path(MODEL_PATH.stem + f"_{game_i}").with_suffix(".mp4")
+        # vid_path = MODEL_PATH.parent / Path(MODEL_PATH.stem + f"_{game_i}").with_suffix(".mp4")
+        vid_path = MODEL_PATH.parent / Path(MODEL_PATH.stem + f"_{game_i}").with_suffix(".gif")
         vid_path.parent.mkdir(parents=True, exist_ok=True)
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        video = cv2.VideoWriter(str(vid_path), fourcc, int(1 / FRAME_DURATION), (width,height))
-        for frame in video_frames:
-            video.write(frame)
-        video.release()
+        imgs = [Image.fromarray(img) for img in video_frames]
+        imgs[0].save(vid_path, save_all=True, append_images=imgs[1:], duration=50, loop=0)
+        # TODO(jun): Switch to h264-encoded mp4 which is most widely supported
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # video = cv2.VideoWriter(str(vid_path), fourcc, int(1 / FRAME_DURATION), (width,height))
+        # for frame in video_frames:
+        #     video.write(frame)
+        # video.release()
         print("Saved video to", vid_path)
         video_frames.clear()
 
@@ -368,9 +370,9 @@ if __name__ == "__main__":
         "MineRLTreechop-v0",
         "MineRLBasaltBuildVillageHouse-v0", 
         "MineRLBasaltCreatePlainsAnimalPen-v0", 
-        "MineRLBasaltCreateVillageAnimalPen-v0", 
         "MineRLBasaltFindCave-v0", 
-        "MineRLBasaltMakeWaterfall-v0"
+        "MineRLBasaltMakeWaterfall-v0",
+        "MineRLBasaltCreateVillageAnimalPen-v0", 
     ]
     for env in envs:
         print(f"\n\n\nNow working on {env}")
