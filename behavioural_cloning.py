@@ -1,14 +1,15 @@
 import cv2
-import time
 import gym
 import minerl
 import numpy as np
 import os
+import time
 import torch
 from pathlib import Path
 from torch import nn
 from torch._C import LongStorageBase
 from tqdm import tqdm
+
 
 """
 Your task: Implement behavioural cloning for MineRLTreechop-v0.
@@ -28,22 +29,20 @@ Note: For this task you need to download the "MineRLTreechop-v0" dataset. See he
 https://minerl.readthedocs.io/en/latest/tutorials/data_sampling.html#downloading-the-minerl-dataset-with-minerl-data-download
 """
 
-def render(observation, environment, headless = False, write_frame = False):
-    """A function for rendering MineRL environments. You do not need to worry about this function"""
-    if isinstance(environment.unwrapped, minerl.env._singleagent._SingleAgentEnv):
-        # Environment is a MineRL one, use OpenCV image showing to show image
-        # Make it larger for easier reading
-        image = observation["pov"]
-        image = cv2.resize(image, (256, 256))
-        if write_frame:
-            video_frames.append(image[..., ::-1])
-        if not headless:
-            cv2.imshow("minerl-image", image[..., ::-1])
-            # Refresh image
-            _ = cv2.waitKey(1)
-    else:
-        # Regular render
-        environment.render()
+
+def render(observation, headless = False, write_frame = False):
+    """A function for rendering MineRL environments."""
+    # Environment is a MineRL one, use OpenCV image showing to show image
+    # Make it larger for easier reading
+    image = observation["pov"]
+    image = cv2.resize(image, (256, 256))
+    if write_frame:
+        video_frames.append(image[..., ::-1])
+    if not headless:
+        cv2.imshow("minerl-image", image[..., ::-1])
+        # Refresh image
+        _ = cv2.waitKey(1)
+
 
 class NatureCNN(nn.Module):
     """
@@ -85,28 +84,6 @@ class NatureCNN(nn.Module):
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         return self.linear(self.cnn(observations))
 
-# class ConvNet(nn.Module):
-#     """
-#     :param input_shape: A three-item tuple telling image dimensions in (C, H, W)
-#     :param output_dim: Dimensionality of the output vector
-#     """
-
-#     def __init__(self, input_shape, output_dim):
-#         super().__init__()
-#         # TODO Create a torch neural network here to turn images (of shape `input_shape`) into
-#         #      a vector of shape `output_dim`. This output_dim matches number of available actions.
-#         #      See examples of doing CNN networks here https://pytorch.org/tutorials/beginner/nn_tutorial.html#switch-to-cnn
-#         # input_shape = (3, 64, 64)
-#         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1)
-#         self.conv2 = nn.Conv2d(16, 16, kernel_size=3, stride=2, padding=1)
-#         self.conv3 = nn.Conv2d(16, 10, kernel_size=3, stride=2, padding=1)
-#         raise NotImplementedError("TODO implement a simple convolutional neural network here")
-
-#     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-#         # TODO with the layers you created in __init__, transform the `observations` (a tensor of shape (B, C, H, W)) to
-#         #      a tensor of shape (B, D), where D is the `output_dim`
-#         raise NotImplementedError("TODO implement forward function of the neural network")
-
 
 def agent_action_to_environment(noop_action, agent_action):
     """
@@ -115,8 +92,8 @@ def agent_action_to_environment(noop_action, agent_action):
     e.g. if attack=1 action was mapped to agent_action=0, then agent_action=0
     should be mapped back to attack=1.
 
-    noop_action is a MineRL action that does nothing. You may want to
-    use this as a template for the action you return.
+    noop_action is a MineRL action that does nothing. 
+    This is used as a template for the action to return.
 
     0 = forward
     1 = jump
@@ -126,7 +103,6 @@ def agent_action_to_environment(noop_action, agent_action):
     5 = turn camera down
     6 = attack
     """
-    # raise NotImplementedError("TODO implement agent_action_to_environment (see docstring)")
     env_action = noop_action
     if agent_action == 0:
         env_action['forward'] = 1
@@ -172,10 +148,8 @@ def environment_action_batch_to_agent_actions(dataset_actions):
 
     If dataset action (dict) does not have a mapping to agent action (int),
     then set it "-1"
-    """
-
-    """
-    Action space: 
+    
+    For reference, here is the environment action space:
     Dict(
         attack:Discrete(2), 
         back:Discrete(2), 
@@ -197,19 +171,8 @@ def environment_action_batch_to_agent_actions(dataset_actions):
     batch_size = len(dataset_actions["camera"])
     actions = np.zeros((batch_size,), dtype=np.int)
 
-    # 0 = forward
-    # 1 = jump
-    # 2 = turn camera left
-    # 3 = turn camera right
-    # 4 = turn camera up
-    # 5 = turn camera down
-    # 6 = attack
     # Dataset actions are batched per-key; i.e. dataset_actions['attack'] is an array of length B
     for i in range(batch_size):
-        # # TODO this will make all actions invalid. Replace with something
-        # # more clever
-        # actions[i] = -1
-        # raise NotImplementedError("TODO map dataset action at index i to an agent action, or if no mapping, -1")
         # TODO(Jun): This is a very poor lossy mapping; each dataset_action actually can be multi-action,
         # but here we discard everything but the first match (there will be strong bias to 'forward')
         if dataset_actions['forward'][i] == 1:
@@ -246,17 +209,13 @@ def train():
     data = minerl.data.make(ENV_NAME)
     iterator = minerl.data.BufferedBatchIter(data)
 
+    # Create policy network
     number_of_actions = 7 # See environment_action_batch_to_agent_actions()
-    # # TODO we need to tell the network how many possible actions there are,
-    # #      so assign the value in above variable
-    # raise NotImplementedError("TODO add number of actions to `number_of_actions`")
     network = NatureCNN((3, 64, 64), number_of_actions).cuda()
-    # # TODO create optimizer and loss functions for training
+    # Create optimizer and loss functions for training
     # #      see examples here https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
-    # raise NotImplementedError("TODO Create an optimizer and a loss function.")
     optimizer = torch.optim.Adam(network.parameters(), lr=0.0001)
     loss_function = nn.CrossEntropyLoss()
-    # JUN: CONTINUE FROM HERE
 
     iter_count = 0
     losses = []
@@ -277,7 +236,7 @@ def train():
         obs = obs[mask]
         actions = actions[mask]
 
-        # TODO perform optimization step:
+        # Perform optimization step:
         # - Predict actions using the neural network (input is `obs`)
         # - Compute loss with the predictions and true actions. Store loss into variable `loss`
         # - Use optimizer to do a single update step
@@ -325,14 +284,12 @@ def enjoy():
         step_count = 0
         with tqdm(total=env.spec.max_episode_steps) as pbar:
             while not done:
-                # TODO Process the observation:
+                # Process the observation:
                 #   - Take only the camera observation
                 #   - Add/remove batch dimensions
                 #   - Transpose image (needs to be channels-last)
                 #   - Normalize image
                 #   - Store network output to `logits`
-                # For hints, see what preprocessing was done during training
-                # raise NotImplementedError("TODO process the observation and run it through network")
 
                 # We only use camera observations here
                 obs = obs["pov"].astype(np.float32)
@@ -350,12 +307,12 @@ def enjoy():
                 probabilities = torch.softmax(logits, dim=1)[0]
                 # Into numpy
                 probabilities = probabilities.detach().cpu().numpy()
-                # TODO Pick an action based from the probabilities above.
+                # Pick an action based from the probabilities above.
                 # The `probabilities` vector tells the probability of choosing one of the agent actions.
-                # You have two options:
+                # There are two options:
                 # 1) Pick action with the highest probability
                 # 2) Sample action based on probabilities
-                # Option 2 works better emperically.
+                # Option 2 works better empirically, so we use that.
                 agent_action = np.random.choice(range(len(probabilities)), p=probabilities)
 
                 noop_action = env.action_space.noop()
@@ -395,7 +352,7 @@ def enjoy():
 
     env.close()
 
-
+# TODO(jun): Change to argparse
 LOG_PATH = Path("output")
 ENV_NAME = 'MineRLTreechop-v0'
 MODEL_PATH = LOG_PATH / ENV_NAME / "behavioural_cloning.pth"
